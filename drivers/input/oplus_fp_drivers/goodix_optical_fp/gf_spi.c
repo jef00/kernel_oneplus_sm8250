@@ -722,6 +722,16 @@ static struct notifier_block goodix_noti_block = {
     .notifier_call = goodix_fb_state_chg_callback,
 };
 
+static atomic_t fodwaiting;
+void oneplus_fod_ready(void)
+{
+	char msg;
+	if (!atomic_xchg_acquire(&fodwaiting, 0))
+		return;
+	msg = GF_NET_EVENT_TP_TOUCHDOWN;
+	sendnlmsg(&msg);
+}
+
 static int gf_opticalfp_irq_handler(struct fp_underscreen_info *tp_info)
 {
     char msg = 0;
@@ -731,13 +741,11 @@ static int gf_opticalfp_irq_handler(struct fp_underscreen_info *tp_info)
     }
     wake_lock_timeout(&fp_wakelock, msecs_to_jiffies(WAKELOCK_HOLD_TIME));
     if (1 == tp_info->touch_state) {
-        msg = GF_NET_EVENT_TP_TOUCHDOWN;
-        sendnlmsg(&msg);
+        atomic_set_release(&fodwaiting, 1);
         lasttouchmode = tp_info->touch_state;
         send_fingerprint_message(E_FP_TP, tp_info->touch_state, tp_info, sizeof(struct fp_underscreen_info));
     } else {
-        msg = GF_NET_EVENT_TP_TOUCHUP;
-        sendnlmsg(&msg);
+        atomic_set_release(&fodwaiting, 0);
         send_fingerprint_message(E_FP_TP, tp_info->touch_state, tp_info, sizeof(struct fp_underscreen_info));
         lasttouchmode = tp_info->touch_state;
     }
