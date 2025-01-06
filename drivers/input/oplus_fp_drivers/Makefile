@@ -1,3 +1,5 @@
+KBUILD_CFLAGS += -Wno-unused-variable -Wno-unused-function
+
 obj-$(CONFIG_OPLUS_FINGERPRINT) += oplus_fp_common/
 
 ### Capacitive fingerprint sensor
